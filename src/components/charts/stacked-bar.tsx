@@ -16,10 +16,16 @@ interface StackedBarProps {
   yLabel?: string;
 }
 
-// Custom label inside bars — only show if segment is tall enough
+// Safe rounding helper — avoids floating point artifacts
+function pct(v: unknown): string {
+  return parseFloat(Number(v).toFixed(1)).toString();
+}
+
+// Custom label inside bars — show if segment >= 2% and tall enough
 function BarLabel(props: Record<string, unknown>) {
   const { x, y, width, height, value } = props as { x: number; y: number; width: number; height: number; value: number };
-  if (!value || value < 4 || height < 16) return null;
+  const num = Number(value);
+  if (!num || num < 2 || height < 14) return null;
   return (
     <text
       x={x + width / 2}
@@ -27,11 +33,11 @@ function BarLabel(props: Record<string, unknown>) {
       fill="#fff"
       textAnchor="middle"
       dominantBaseline="middle"
-      fontSize={10}
+      fontSize={num < 5 ? 8 : 10}
       fontWeight={600}
       style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}
     >
-      {value}%
+      {pct(num)}%
     </text>
   );
 }
@@ -50,7 +56,7 @@ function CustomTooltip({ active, payload, label, bars }: Record<string, unknown>
         <div key={it.dataKey} className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ backgroundColor: it.color }} />
           <span className="text-gray-600">{it.name}:</span>
-          <span className="font-medium">{it.value}%</span>
+          <span className="font-medium">{pct(it.value)}%</span>
         </div>
       ))}
     </div>
@@ -78,7 +84,7 @@ export default function StackedBar({ data, xKey, bars, xLabel, yLabel }: Stacked
         <ComposedChart data={data} margin={{ bottom: xLabel ? 20 : 5, left: yLabel ? 10 : 0, top: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis dataKey={xKey} tick={{ fontSize: 11 }} label={xLabel ? { value: xLabel, position: 'insideBottom', offset: -15, style: { fontSize: 11, fill: '#6b7280' } } : undefined} />
-          <YAxis tick={{ fontSize: 11 }} domain={[0, 100]} tickFormatter={(v) => `${v}%`} label={yLabel ? { value: yLabel, angle: -90, position: 'insideLeft', style: { fontSize: 11, fill: '#6b7280', textAnchor: 'middle' } } : undefined} />
+          <YAxis tick={{ fontSize: 11 }} domain={[0, 100]} tickFormatter={(v) => `${Number(v)}%`} label={yLabel ? { value: yLabel, angle: -90, position: 'insideLeft', style: { fontSize: 11, fill: '#6b7280', textAnchor: 'middle' } } : undefined} />
           <Tooltip content={(props) => <CustomTooltip {...props} bars={bars} />} />
           {bars.map((bar) => (
             <Bar

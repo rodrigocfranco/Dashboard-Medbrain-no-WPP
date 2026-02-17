@@ -64,8 +64,8 @@ export default async function EngagementPage({ searchParams }: { searchParams: P
         floored[remainders[j].i] = Math.round((floored[remainders[j].i] + 0.1) * 10) / 10;
       }
       const pct: Record<string, unknown> = { mes: formatMonth(mes) };
-      let cum = 0;
-      FAIXA_KEYS.forEach((k, i) => { pct[k] = floored[i]; cum += floored[i]; pct[`c${i + 1}`] = Math.round(cum * 10) / 10; });
+      let cumInt = 0; // work in integer tenths to avoid float errors
+      FAIXA_KEYS.forEach((k, i) => { pct[k] = floored[i]; cumInt += Math.round(floored[i] * 10); pct[`c${i + 1}`] = cumInt / 10; });
       return pct;
     });
   const monthlyBars = [
