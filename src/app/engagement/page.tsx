@@ -5,7 +5,7 @@ import KPICard from '@/components/charts/kpi-card';
 import ChartWrapper from '@/components/charts/chart-wrapper';
 import TrendLine from '@/components/charts/trend-line';
 import Histogram from '@/components/charts/histogram';
-import StackedArea from '@/components/charts/stacked-area';
+import StackedBar from '@/components/charts/stacked-bar';
 import CohortHeatmap from '@/components/charts/cohort-heatmap';
 import Header from '@/components/layout/header';
 import PeriodSelector from '@/components/layout/period-selector';
@@ -40,18 +40,24 @@ export default async function EngagementPage({ searchParams }: { searchParams: P
     return `${MONTH_NAMES[parseInt(m, 10) - 1]}/${y.slice(2)}`;
   }
 
-  // Pivot monthly data for stacked area
-  const FAIXAS = ['01', '02-05', '06-10', '11-20', '21-40', '40+'];
+  // Pivot monthly data for stacked bar — use sequential keys (f1..f6) to guarantee order
+  const FAIXA_MAP: Record<string, string> = { '01': 'f1', '02-05': 'f2', '06-10': 'f3', '11-20': 'f4', '21-40': 'f5', '40+': 'f6' };
   const monthlyMap = new Map<string, Record<string, unknown>>();
   monthlyData.forEach(r => {
     const mes = String(r.mes);
     if (!monthlyMap.has(mes)) monthlyMap.set(mes, { mes: formatMonth(mes), _sort: mes });
-    monthlyMap.get(mes)![String(r.faixa)] = Number(r.usuarios);
+    const seqKey = FAIXA_MAP[String(r.faixa)];
+    if (seqKey) monthlyMap.get(mes)![seqKey] = Number(r.usuarios);
   });
   const monthlyChartData = Array.from(monthlyMap.values()).sort((a, b) => String(a._sort).localeCompare(String(b._sort)));
-  const FAIXA_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
-  const FAIXA_LABELS: Record<string, string> = { '01': '1 msg', '02-05': '2-5 msgs', '06-10': '6-10 msgs', '11-20': '11-20 msgs', '21-40': '21-40 msgs', '40+': '40+ msgs' };
-  const monthlyAreas = FAIXAS.map((f, i) => ({ key: f, color: FAIXA_COLORS[i], name: FAIXA_LABELS[f] }));
+  const monthlyBars = [
+    { key: 'f1', color: '#3b82f6', name: '1 msg' },
+    { key: 'f2', color: '#10b981', name: '2-5 msgs' },
+    { key: 'f3', color: '#f59e0b', name: '6-10 msgs' },
+    { key: 'f4', color: '#ef4444', name: '11-20 msgs' },
+    { key: 'f5', color: '#8b5cf6', name: '21-40 msgs' },
+    { key: 'f6', color: '#ec4899', name: '40+ msgs' },
+  ];
 
   return (
     <div>
@@ -69,7 +75,7 @@ export default async function EngagementPage({ searchParams }: { searchParams: P
         </ChartWrapper>
 
         <ChartWrapper title="Distribuição de Usuários por Volume de Mensagens (Mensal)" description="Quantidade de usuários por faixa de mensagens enviadas em cada mês — mostra a evolução do engajamento ao longo do tempo" chartId="engagement-monthly-dist">
-          <StackedArea data={monthlyChartData} xKey="mes" areas={monthlyAreas} xLabel="Mês" yLabel="Usuários" />
+          <StackedBar data={monthlyChartData} xKey="mes" bars={monthlyBars} xLabel="Mês" yLabel="Usuários" />
         </ChartWrapper>
 
         <ChartWrapper title="Retenção por Cohort Semanal" description="Cada linha representa um grupo de usuários que usaram o bot pela primeira vez na mesma semana. As colunas mostram qual % desses usuários voltou a usar 1, 2, 3... semanas depois. Verde = boa retenção, vermelho = perda de usuários." chartId="engagement-cohort">
