@@ -40,16 +40,25 @@ export default async function EngagementPage({ searchParams }: { searchParams: P
     return `${MONTH_NAMES[parseInt(m, 10) - 1]}/${y.slice(2)}`;
   }
 
-  // Pivot monthly data for stacked bar — use sequential keys (f1..f6) to guarantee order
+  // Pivot monthly data for stacked bar (% da base) — sequential keys to guarantee order
   const FAIXA_MAP: Record<string, string> = { '01': 'f1', '02-05': 'f2', '06-10': 'f3', '11-20': 'f4', '21-40': 'f5', '40+': 'f6' };
-  const monthlyMap = new Map<string, Record<string, unknown>>();
+  const monthlyRaw = new Map<string, Record<string, number>>();
   monthlyData.forEach(r => {
     const mes = String(r.mes);
-    if (!monthlyMap.has(mes)) monthlyMap.set(mes, { mes: formatMonth(mes), _sort: mes });
+    if (!monthlyRaw.has(mes)) monthlyRaw.set(mes, {});
     const seqKey = FAIXA_MAP[String(r.faixa)];
-    if (seqKey) monthlyMap.get(mes)![seqKey] = Number(r.usuarios);
+    if (seqKey) monthlyRaw.get(mes)![seqKey] = Number(r.usuarios);
   });
-  const monthlyChartData = Array.from(monthlyMap.values()).sort((a, b) => String(a._sort).localeCompare(String(b._sort)));
+  const monthlyChartData = Array.from(monthlyRaw.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([mes, counts]) => {
+      const total = Object.values(counts).reduce((s, v) => s + v, 0);
+      const pct: Record<string, unknown> = { mes: formatMonth(mes) };
+      for (const key of ['f1', 'f2', 'f3', 'f4', 'f5', 'f6']) {
+        pct[key] = total > 0 ? Math.round(((counts[key] || 0) / total) * 1000) / 10 : 0;
+      }
+      return pct;
+    });
   const monthlyBars = [
     { key: 'f1', color: '#3b82f6', name: '1 msg' },
     { key: 'f2', color: '#10b981', name: '2-5 msgs' },
@@ -74,8 +83,8 @@ export default async function EngagementPage({ searchParams }: { searchParams: P
           <Histogram data={freqData.map(r => ({ faixa: String(r.faixa), total: Number(r.users) }))} xLabel="Nº de mensagens" yLabel="Sessões" />
         </ChartWrapper>
 
-        <ChartWrapper title="Distribuição de Usuários por Volume de Mensagens (Mensal)" description="Quantidade de usuários por faixa de mensagens enviadas em cada mês — mostra a evolução do engajamento ao longo do tempo" chartId="engagement-monthly-dist">
-          <StackedBar data={monthlyChartData} xKey="mes" bars={monthlyBars} xLabel="Mês" yLabel="Usuários" />
+        <ChartWrapper title="Distribuição de Usuários por Volume de Mensagens (Mensal)" description="% da base de usuários em cada faixa de mensagens por mês. Cada barra soma 100%, permitindo comparar a composição mesmo com crescimento da base." chartId="engagement-monthly-dist">
+          <StackedBar data={monthlyChartData} xKey="mes" bars={monthlyBars} xLabel="Mês" yLabel="% da base" />
         </ChartWrapper>
 
         <ChartWrapper title="Retenção por Cohort Semanal" description="Cada linha representa um grupo de usuários que usaram o bot pela primeira vez na mesma semana. As colunas mostram qual % desses usuários voltou a usar 1, 2, 3... semanas depois. Verde = boa retenção, vermelho = perda de usuários." chartId="engagement-cohort">
