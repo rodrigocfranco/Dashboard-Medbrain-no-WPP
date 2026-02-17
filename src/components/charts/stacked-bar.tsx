@@ -22,9 +22,16 @@ function pct(v: unknown): string {
 }
 
 // Custom label inside bars — show if segment >= 2% and tall enough
+// In stacked bars, Recharts passes value as [stackStart, stackEnd], so we compute the difference
 function BarLabel(props: Record<string, unknown>) {
-  const { x, y, width, height, value } = props as { x: number; y: number; width: number; height: number; value: number };
-  const num = Number(value);
+  const { x, y, width, height, value } = props as { x: number; y: number; width: number; height: number; value: unknown };
+  let num: number;
+  if (Array.isArray(value)) {
+    num = Number(value[1]) - Number(value[0]);
+  } else {
+    num = Number(value);
+  }
+  num = parseFloat(num.toFixed(1));
   if (!num || num < 2 || height < 14) return null;
   return (
     <text
@@ -84,7 +91,7 @@ export default function StackedBar({ data, xKey, bars, xLabel, yLabel }: Stacked
         <ComposedChart data={data} margin={{ bottom: xLabel ? 20 : 5, left: yLabel ? 10 : 0, top: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis dataKey={xKey} tick={{ fontSize: 11 }} label={xLabel ? { value: xLabel, position: 'insideBottom', offset: -15, style: { fontSize: 11, fill: '#6b7280' } } : undefined} />
-          <YAxis tick={{ fontSize: 11 }} domain={[0, 100]} tickFormatter={(v) => `${Number(v)}%`} label={yLabel ? { value: yLabel, angle: -90, position: 'insideLeft', style: { fontSize: 11, fill: '#6b7280', textAnchor: 'middle' } } : undefined} />
+          <YAxis tick={{ fontSize: 11 }} domain={[0, 100]} tickFormatter={(v) => `${Math.round(Number(v))}%`} label={yLabel ? { value: yLabel, angle: -90, position: 'insideLeft', style: { fontSize: 11, fill: '#6b7280', textAnchor: 'middle' } } : undefined} />
           <Tooltip content={(props) => <CustomTooltip {...props} bars={bars} />} />
           {bars.map((bar) => (
             <Bar
