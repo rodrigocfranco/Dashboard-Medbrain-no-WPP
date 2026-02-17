@@ -42,6 +42,7 @@ export default async function EngagementPage({ searchParams }: { searchParams: P
 
   // Pivot monthly data for stacked bar (% da base) — sequential keys to guarantee order
   const FAIXA_MAP: Record<string, string> = { '01': 'f1', '02-05': 'f2', '06-10': 'f3', '11-20': 'f4', '21-40': 'f5', '40+': 'f6' };
+  const FAIXA_KEYS = ['f1', 'f2', 'f3', 'f4', 'f5', 'f6'];
   const monthlyRaw = new Map<string, Record<string, number>>();
   monthlyData.forEach(r => {
     const mes = String(r.mes);
@@ -53,10 +54,18 @@ export default async function EngagementPage({ searchParams }: { searchParams: P
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([mes, counts]) => {
       const total = Object.values(counts).reduce((s, v) => s + v, 0);
-      const pct: Record<string, unknown> = { mes: formatMonth(mes) };
-      for (const key of ['f1', 'f2', 'f3', 'f4', 'f5', 'f6']) {
-        pct[key] = total > 0 ? Math.round(((counts[key] || 0) / total) * 1000) / 10 : 0;
+      if (total === 0) return { mes: formatMonth(mes), f1: 0, f2: 0, f3: 0, f4: 0, f5: 0, f6: 0 };
+      // Largest-remainder rounding to guarantee sum = 100.0
+      const raw = FAIXA_KEYS.map(k => ((counts[k] || 0) / total) * 100);
+      const floored = raw.map(v => Math.floor(v * 10) / 10);
+      const remainders = raw.map((v, i) => ({ i, r: v * 10 - Math.floor(v * 10) })).sort((a, b) => b.r - a.r);
+      let gap = Math.round((100 - floored.reduce((s, v) => s + v, 0)) * 10);
+      for (let j = 0; j < gap && j < remainders.length; j++) {
+        floored[remainders[j].i] = Math.round((floored[remainders[j].i] + 0.1) * 10) / 10;
       }
+      const pct: Record<string, unknown> = { mes: formatMonth(mes) };
+      let cum = 0;
+      FAIXA_KEYS.forEach((k, i) => { pct[k] = floored[i]; cum += floored[i]; pct[`c${i + 1}`] = Math.round(cum * 10) / 10; });
       return pct;
     });
   const monthlyBars = [
