@@ -177,7 +177,7 @@ export default async function ErrorsPage({ searchParams }: { searchParams: Promi
     const detail = errorDetails.get(e.id);
     return {
       id: e.id,
-      data: new Date(e.startedAt).toLocaleString('pt-BR'),
+      data: new Date(e.startedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
       status: e.status === 'success' ? 'Sucesso' : e.status === 'error' ? 'Erro' : e.status,
       duracao: e.stoppedAt
         ? `${((new Date(e.stoppedAt).getTime() - new Date(e.startedAt).getTime()) / 1000).toFixed(1)}s`
