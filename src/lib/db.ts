@@ -1,9 +1,14 @@
 import { Pool, types } from 'pg';
 
-// timestamp without time zone (OID 1114) stores São Paulo local time.
-// By default pg interprets it as UTC, causing a -3h offset on display.
-// Append -03:00 so JS Date objects carry the correct UTC instant.
+// Timestamps in this DB store São Paulo local time but without proper offset.
+// OID 1114 = timestamp without time zone
+// OID 1184 = timestamp with time zone (pg sends value with +00, but it's actually SP time)
+// Fix: strip any existing offset and re-interpret as São Paulo (-03:00).
 types.setTypeParser(1114, (val: string) => new Date(val + '-03:00'));
+types.setTypeParser(1184, (val: string) => {
+  const withoutTz = val.replace(/[+-]\d{2}(:\d{2})?$/, '');
+  return new Date(withoutTz + '-03:00');
+});
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
