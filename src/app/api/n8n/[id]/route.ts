@@ -36,7 +36,7 @@ export async function GET(
     }
 
     const res = await fetch(
-      `${baseUrl}/executions/${encodeURIComponent(id)}`,
+      `${baseUrl}/executions/${encodeURIComponent(id)}?includeData=true`,
       { headers: { 'X-N8N-API-KEY': apiKey } }
     );
 
