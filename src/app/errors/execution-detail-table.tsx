@@ -149,7 +149,7 @@ export default function ExecutionDetailTable({ data }: ExecutionDetailTableProps
             </p>
           ) : (
             <DataTable
-              data={nodeDetails}
+              data={nodeDetails as unknown as Record<string, unknown>[]}
               columns={[
                 { key: 'nome', label: 'Nó', sortable: true },
                 { key: 'tempoExecucao', label: 'Tempo de Execução', sortable: true },

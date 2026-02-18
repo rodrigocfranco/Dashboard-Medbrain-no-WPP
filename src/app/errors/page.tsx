@@ -16,17 +16,6 @@ interface N8NExecution {
   stoppedAt: string | null;
 }
 
-interface N8NExecutionDetail {
-  id: string;
-  status: string;
-  startedAt: string;
-  stoppedAt: string | null;
-  data?: {
-    resultData?: {
-      error?: { message?: string; node?: string; description?: string };
-    };
-  };
-}
 
 async function fetchN8NExecutions(rangeFrom: Date): Promise<{
   executions: N8NExecution[];
@@ -86,8 +75,8 @@ async function fetchErrorDetails(errorIds: string[]): Promise<Map<string, { mess
   const apiKey = process.env.N8N_API_KEY;
   if (!baseUrl || !apiKey) return details;
 
-  // Fetch details for up to 10 most recent errors
-  const ids = errorIds.slice(0, 10);
+  // Fetch details for up to 30 most recent errors
+  const ids = errorIds.slice(0, 30);
   await Promise.all(
     ids.map(async (id) => {
       try {
@@ -96,14 +85,19 @@ async function fetchErrorDetails(errorIds: string[]): Promise<Map<string, { mess
           next: { revalidate: 300 },
         });
         if (!res.ok) return;
-        const detail: N8NExecutionDetail = await res.json();
-        const err = detail.data?.resultData?.error;
-        if (err) {
-          details.set(id, {
-            message: err.message || err.description || 'Erro desconhecido',
-            node: err.node || '—',
-          });
-        }
+        const detail = await res.json();
+        const resultData = detail.data?.resultData;
+        const err = resultData?.error;
+        const lastNode = resultData?.lastNodeExecuted;
+
+        // N8N puts node name in lastNodeExecuted, not in error.node
+        const nodeName = typeof lastNode === 'string' ? lastNode
+          : typeof err?.node === 'string' ? err.node
+          : typeof err?.node?.name === 'string' ? err.node.name
+          : '—';
+        const message = err?.message || err?.description || 'Erro desconhecido';
+
+        details.set(id, { message, node: nodeName });
       } catch {
         // Silently ignore individual fetch errors
       }
@@ -162,7 +156,8 @@ export default async function ErrorsPage({ searchParams }: { searchParams: Promi
     if (e.status === 'error') entry.erros++;
   });
   const timelineData = Array.from(allDayMap.entries())
-    .map(([date, counts]) => ({ date, total: counts.total, erros: counts.erros }));
+    .map(([date, counts]) => ({ date, total: counts.total, erros: counts.erros }))
+    .reverse();
 
   // Status distribution for bar chart
   const statusMap = new Map<string, number>();

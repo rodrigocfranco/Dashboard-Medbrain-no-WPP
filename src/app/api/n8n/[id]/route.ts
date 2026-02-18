@@ -17,7 +17,7 @@ export async function GET(
 
   const { id } = await params;
 
-  if (!id || !/^\d+$/.test(id)) {
+  if (!id || !/^[\w-]+$/.test(id)) {
     return NextResponse.json(
       { error: 'ID de execução inválido' },
       { status: 400 }
