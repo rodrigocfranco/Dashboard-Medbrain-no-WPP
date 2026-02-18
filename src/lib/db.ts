@@ -1,4 +1,9 @@
-import { Pool } from 'pg';
+import { Pool, types } from 'pg';
+
+// timestamp without time zone (OID 1114) stores São Paulo local time.
+// By default pg interprets it as UTC, causing a -3h offset on display.
+// Append -03:00 so JS Date objects carry the correct UTC instant.
+types.setTypeParser(1114, (val: string) => new Date(val + '-03:00'));
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,

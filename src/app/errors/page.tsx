@@ -3,8 +3,8 @@ import KPICard from '@/components/charts/kpi-card';
 import ChartWrapper from '@/components/charts/chart-wrapper';
 import TrendLine from '@/components/charts/trend-line';
 import BarChartComponent from '@/components/charts/bar-chart';
-import DataTable from '@/components/ui/data-table';
 import EmptyState from '@/components/ui/empty-state';
+import ExecutionDetailTable from './execution-detail-table';
 import AlertBanner from '@/components/ui/alert-banner';
 import Header from '@/components/layout/header';
 import PeriodSelector from '@/components/layout/period-selector';
@@ -175,13 +175,15 @@ export default async function ErrorsPage({ searchParams }: { searchParams: Promi
   // All executions formatted for table
   const tableData = executions.slice(0, 100).map((e) => {
     const detail = errorDetails.get(e.id);
+    const duracaoSeg = e.stoppedAt
+      ? (new Date(e.stoppedAt).getTime() - new Date(e.startedAt).getTime()) / 1000
+      : null;
     return {
       id: e.id,
       data: new Date(e.startedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
       status: e.status === 'success' ? 'Sucesso' : e.status === 'error' ? 'Erro' : e.status,
-      duracao: e.stoppedAt
-        ? `${((new Date(e.stoppedAt).getTime() - new Date(e.startedAt).getTime()) / 1000).toFixed(1)}s`
-        : '—',
+      duracao: duracaoSeg !== null ? `${duracaoSeg.toFixed(1)}s` : '—',
+      duracaoRaw: duracaoSeg,
       erro: detail ? `[${detail.node}] ${detail.message}` : '',
     };
   });
@@ -268,22 +270,11 @@ export default async function ErrorsPage({ searchParams }: { searchParams: Promi
 
         <ChartWrapper
           title="Execuções Recentes"
-          description="Execuções do workflow Medbrain no período — busque por 'Erro' para filtrar falhas"
+          description="Clique em uma linha para ver detalhes por nó"
           chartId="n8n-list"
         >
           {tableData.length > 0 ? (
-            <DataTable
-              data={tableData}
-              columns={[
-                { key: 'data', label: 'Data/Hora', sortable: true },
-                { key: 'status', label: 'Status', sortable: true },
-                { key: 'duracao', label: 'Duração', sortable: true },
-                { key: 'erro', label: 'Detalhes do Erro' },
-                { key: 'id', label: 'ID' },
-              ]}
-              searchable
-              searchPlaceholder="Buscar por status, erro..."
-            />
+            <ExecutionDetailTable data={tableData} />
           ) : (
             <EmptyState message="Nenhuma execução no período selecionado" />
           )}

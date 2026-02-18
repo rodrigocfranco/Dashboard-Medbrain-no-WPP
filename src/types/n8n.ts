@@ -8,6 +8,15 @@ export interface N8NExecution {
   status: 'success' | 'error' | 'waiting' | 'running';
 }
 
+export interface N8NNodeExecution {
+  startTime: number;
+  executionTime: number;
+  executionStatus?: string;
+  data?: Record<string, unknown>;
+}
+
+export type N8NNodeRunData = Record<string, N8NNodeExecution[]>;
+
 export interface N8NExecutionDetail extends N8NExecution {
   data: {
     resultData: {
@@ -16,7 +25,7 @@ export interface N8NExecutionDetail extends N8NExecution {
         stack?: string;
         node?: { name: string; type: string };
       };
-      runData?: Record<string, unknown>;
+      runData?: N8NNodeRunData;
     };
   };
 }
